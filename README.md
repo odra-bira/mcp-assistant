@@ -10,7 +10,6 @@ manages an application tracker by orchestrating tools across multiple MCP server
 [![tests](https://github.com/odra-bira/mcp-assistant/actions/workflows/tests.yml/badge.svg)](https://github.com/odra-bira/mcp-assistant/actions/workflows/tests.yml)
 ![Python](https://img.shields.io/badge/python-3.11%20|%203.12%20|%203.13-blue)
 ![MCP SDK](https://img.shields.io/badge/MCP%20Python%20SDK-v2-informational)
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
 ![Web UI: conversation with inline approval requests, and the per-call activity record](docs/web-ui.png)
 
@@ -222,7 +221,3 @@ run under Claude Desktop or any other MCP host.
   and Future Research Directions.* arXiv:2503.23278, 2025.
 - Model Context Protocol specification: https://modelcontextprotocol.io
 - Job listings courtesy of [Remotive](https://remotive.com); each result links to its source listing.
-
-## License
-
-MIT
