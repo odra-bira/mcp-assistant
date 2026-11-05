@@ -1,0 +1,21 @@
+# Environments and caches
+.venv/
+__pycache__/
+.pytest_cache/
+.DS_Store
+
+# Local runtime data
+data/jobs.db
+data/remotive_cache*.json
+logs/
+
+# Personal files: never commit a real resume (only data/sample_resume.md is tracked)
+data/resume.pdf
+data/resume.txt
+data/resume.md
+
+# Secrets
+.env
+
+# Local benchmark output
+results/
