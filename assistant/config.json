@@ -1,0 +1,33 @@
+{
+  "servers": [
+    {
+      "name": "resume",
+      "command": "python",
+      "args": ["servers/resume_server.py"],
+      "enabled": true
+    },
+    {
+      "name": "jobsearch",
+      "command": "python",
+      "args": ["servers/job_search_server.py"],
+      "enabled": true
+    },
+    {
+      "name": "jobsdb",
+      "command": "python",
+      "args": ["servers/jobs_db_server.py"],
+      "enabled": true
+    },
+    {
+      "name": "evil",
+      "command": "python",
+      "args": ["servers/evil_server.py"],
+      "enabled": false
+    }
+  ],
+  "safety": {
+    "quarantine_suspicious_tools": true,
+    "confirm_write_tools": true
+  },
+  "max_steps_per_turn": 8
+}
