@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job search assistant</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EDF0F3;
+    --panel: #FFFFFF;
+    --ink: #1C2230;
+    --ink-2: #4A5366;
+    --ink-3: #7A8396;
+    --rule: #D5DAE1;
+    --wait: #B7791F;  --wait-bg: #FDF4E3;
+    --done: #0F766E;  --done-bg: #E6F4F2;
+    --fail: #B42318;  --fail-bg: #FDECEA;
+    --focus: #2B6CB0;
+    --srv-resume: #7A4E9C;
+    --srv-jobsearch: #2B6CB0;
+    --srv-jobsdb: #5F7A1E;
+    --srv-evil: #A21CAF;
+    --srv-other: #7A8396;
+    --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #151A23; --panel: #1D2430; --ink: #E7EAF0; --ink-2: #B4BCCB; --ink-3: #8790A2;
+      --rule: #2E3747;
+      --wait: #E3A94A; --wait-bg: #3A2E17;
+      --done: #4FC1B4; --done-bg: #16302D;
+      --fail: #F0877C; --fail-bg: #3A1D1A;
+      --focus: #7FB0E8;
+      --srv-resume: #B58BD6; --srv-jobsearch: #7FB0E8; --srv-jobsdb: #A9C25E; --srv-evil: #E879F9;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font: 400 16px/1.55 var(--sans);
+    display: flex; flex-direction: column;
+  }
+  button, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  code, .mono { font-family: var(--mono); font-size: 0.86em; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    padding: 14px 28px; border-bottom: 1px solid var(--rule); background: var(--panel);
+  }
+  header h1 { font-size: 19px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; color: var(--ink-2); font-size: 14px; }
+  .servers { display: flex; gap: 6px; flex-wrap: wrap; }
+  .server-chip {
+    font-size: 13px; padding: 2px 9px 2px 8px; border-radius: 4px;
+    border: 1px solid var(--rule); border-left: 4px solid var(--srv, var(--srv-other));
+  }
+  header .spacer { flex: 1; }
+  .btn-quiet {
+    background: none; border: 1px solid var(--rule); border-radius: 6px;
+    padding: 6px 12px; font-size: 14px; cursor: pointer;
+  }
+  .btn-quiet:hover { border-color: var(--ink-3); }
+
+  .warnings {
+    margin: 0; padding: 10px 28px; background: var(--fail-bg); color: var(--fail);
+    border-bottom: 1px solid var(--rule); font-size: 14px;
+  }
+  .warnings strong { font-weight: 600; margin-right: 6px; }
+  .warnings summary { cursor: pointer; }
+  .warnings ul { margin: 4px 0 0; padding-left: 20px; }
+
+  /* ---------- layout ---------- */
+  main {
+    flex: 1; min-height: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  }
+  .conversation { display: flex; flex-direction: column; min-height: 0; }
+  .activity {
+    border-left: 1px solid var(--rule); background: var(--panel);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+
+  /* ---------- conversation ---------- */
+  .messages { flex: 1; overflow-y: auto; padding: 28px; }
+  .thread { max-width: 70ch; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+  .msg .who { font-size: 13px; font-weight: 600; color: var(--ink-3); margin-bottom: 3px; }
+  .msg.user .body { font-weight: 500; }
+  .msg .body p { margin: 0 0 0.6em; }
+  .msg .body p:last-child { margin-bottom: 0; }
+  .msg .body ul, .msg .body ol { margin: 0.2em 0 0.6em; padding-left: 1.3em; }
+  .msg .body a { color: var(--srv-jobsearch); }
+  .msg.error .body { color: var(--fail); }
+
+  .empty { color: var(--ink-2); }
+  .empty h2 { font-size: 28px; line-height: 1.2; font-weight: 700; color: var(--ink); margin: 8px 0 10px; letter-spacing: -0.02em; }
+  .empty p { margin: 0 0 20px; max-width: 56ch; }
+  .examples { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .example {
+    text-align: left; background: var(--panel); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 10px 14px; cursor: pointer; max-width: 100%;
+  }
+  .example:hover { border-color: var(--ink-3); }
+
+  /* approval request inside the conversation */
+  .approval {
+    border: 1px solid var(--wait); background: var(--wait-bg); border-radius: 8px; padding: 14px 16px;
+  }
+  .approval .q { font-weight: 600; margin-bottom: 6px; }
+  .approval dl { margin: 0 0 12px; display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 14px; }
+  .approval dt { color: var(--ink-2); }
+  .approval dd { margin: 0; overflow-wrap: anywhere; }
+  .approval .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--ink); color: var(--panel); border: 0; border-radius: 6px;
+    padding: 8px 16px; font-weight: 600; cursor: pointer;
+  }
+  .btn-secondary {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 8px 16px; cursor: pointer;
+  }
+  .approval.settled { border-color: var(--rule); background: transparent; }
+  .approval .outcome { font-weight: 600; }
+  .approval .outcome.yes { color: var(--done); }
+  .approval .outcome.no { color: var(--fail); }
+
+  .working { color: var(--ink-2); font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--wait); }
+  @media (prefers-reduced-motion: no-preference) {
+    .pulse { animation: pulse 1.1s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: 0.25; } }
+  }
+
+  /* composer */
+  form.composer {
+    border-top: 1px solid var(--rule); background: var(--panel); padding: 14px 28px;
+  }
+  .composer-inner { max-width: 70ch; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+  textarea {
+    flex: 1; resize: none; min-height: 44px; max-height: 160px;
+    border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; background: var(--paper);
+  }
+  textarea:disabled { opacity: 0.6; }
+  .composer .btn-primary { height: 44px; }
+  .composer .btn-primary:disabled { opacity: 0.45; cursor: default; }
+
+  /* ---------- activity record ---------- */
+  .activity-head { padding: 22px 22px 12px; }
+  .activity-head h2 { font-size: 16px; font-weight: 700; margin: 0; }
+  .activity-head p { margin: 2px 0 0; font-size: 14px; color: var(--ink-2); }
+  .slips { flex: 1; overflow-y: auto; padding: 4px 22px 22px; display: flex; flex-direction: column; gap: 10px; }
+  .slip {
+    border: 1px solid var(--rule); border-left: 5px solid var(--srv, var(--srv-other));
+    border-radius: 4px; padding: 10px 12px; font-size: 14px; background: var(--panel);
+  }
+  .slip-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .slip .server { color: var(--ink-2); }
+  .slip .tool { font-family: var(--mono); font-weight: 500; font-size: 13.5px; overflow-wrap: anywhere; }
+  .state { font-size: 12.5px; font-weight: 600; white-space: nowrap; padding: 1px 7px; border-radius: 3px; }
+  .state.wait { color: var(--wait); background: var(--wait-bg); }
+  .state.run { color: var(--ink-2); background: var(--paper); }
+  .state.ok { color: var(--done); background: var(--done-bg); }
+  .state.bad { color: var(--fail); background: var(--fail-bg); }
+  .slip .args { margin: 6px 0 0; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+  .slip details { margin-top: 6px; }
+  .slip summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+  .slip pre {
+    margin: 6px 0 0; padding: 8px; background: var(--paper); border-radius: 4px;
+    font: 12px/1.45 var(--mono); max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .slips .none { color: var(--ink-3); font-size: 14px; }
+
+  /* ---------- small screens: stack ---------- */
+  @media (max-width: 860px) {
+    header { padding: 12px 16px; gap: 10px 16px; }
+    .warnings { padding: 10px 16px; }
+    main { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+    .activity { border-left: 0; border-top: 1px solid var(--rule); max-height: 38vh; }
+    .messages { padding: 20px 16px; }
+    form.composer { padding: 12px 16px; }
+    .activity-head { padding: 14px 16px 8px; }
+    .slips { padding: 4px 16px 16px; }
+    .empty h2 { font-size: 23px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Job search assistant</h1>
+  <div class="meta">
+    <span id="brain">Connecting…</span>
+    <div class="servers" id="servers" aria-label="Connected MCP servers"></div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn-quiet" id="reset" type="button">New conversation</button>
+</header>
+<div class="warnings" id="warnings" hidden></div>
+
+<main>
+  <section class="conversation" aria-label="Conversation">
+    <div class="messages" id="messages">
+      <div class="thread" id="thread" aria-live="polite">
+        <div class="empty" id="empty">
+          <h2>Find jobs that fit your resume.</h2>
+          <p>The assistant reads your resume, searches listings and keeps track of jobs you save.
+             It asks before it saves or changes anything, and shows you every step it takes.</p>
+          <div class="examples">
+            <button class="example" type="button">Read my resume, find remote python jobs that match it, and save the best two.</button>
+            <button class="example" type="button">Show my saved applications.</button>
+            <button class="example" type="button">Mark application 1 as applied.</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <form class="composer" id="composer">
+      <div class="composer-inner">
+        <label for="input" class="sr-only" style="position:absolute;left:-9999px">Message</label>
+        <textarea id="input" rows="1" placeholder="Ask about jobs or your applications"></textarea>
+        <button class="btn-primary" id="send" type="submit">Send</button>
+      </div>
+    </form>
+  </section>
+
+  <aside class="activity" aria-label="Tool activity">
+    <div class="activity-head">
+      <h2>What the assistant did</h2>
+      <p id="activity-count">No tool calls yet.</p>
+    </div>
+    <div class="slips" id="slips" aria-live="polite"></div>
+  </aside>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const thread = $("thread"), slipsEl = $("slips"), input = $("input"), sendBtn = $("send");
+const SERVER_COLORS = { resume: "--srv-resume", jobsearch: "--srv-jobsearch", jobsdb: "--srv-jobsdb", evil: "--srv-evil" };
+const ACTION_LABEL = { save_application: "Save application", update_status: "Update status" };
+const ACTION_PHRASE = { save_application: "save this application", update_status: "change this application's status" };
+let busy = false, callCount = 0, workingEl = null;
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const srvVar = (server) => `var(${SERVER_COLORS[server] || "--srv-other"})`;
+const shortName = (tool) => tool.split("__").pop();
+const serverOf = (tool) => tool.split("__")[0];
+
+/* Minimal, safe formatting: escape first, then **bold**, links and lists. */
+function render(text) {
+  const lines = esc(text || "").split("\n");
+  let html = "", list = null;
+  const inline = (s) => s
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/(https?:\/\/[^\s<)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  const close = () => { if (list) { html += `</${list}>`; list = null; } };
+  for (const line of lines) {
+    const ul = line.match(/^\s*[-*]\s+(.*)/), ol = line.match(/^\s*\d+[.)]\s+(.*)/);
+    if (ul || ol) {
+      const tag = ul ? "ul" : "ol";
+      if (list !== tag) { close(); html += `<${tag}>`; list = tag; }
+      html += `<li>${inline((ul || ol)[1])}</li>`;
+    } else if (line.trim()) { close(); html += `<p>${inline(line)}</p>`; }
+    else close();
+  }
+  close();
+  return html;
+}
+
+function scrollDown() { const m = $("messages"); m.scrollTop = m.scrollHeight; }
+
+function addMessage(kind, text) {
+  $("empty")?.remove();
+  const who = { user: "You", assistant: "Assistant", error: "Something went wrong" }[kind];
+  const el = document.createElement("div");
+  el.className = `msg ${kind}`;
+  el.innerHTML = `<div class="who">${who}</div><div class="body">${render(text)}</div>`;
+  thread.insertBefore(el, workingEl);
+  scrollDown();
+}
+
+function setWorking(text) {
+  if (!text) { workingEl?.remove(); workingEl = null; return; }
+  if (!workingEl) {
+    workingEl = document.createElement("div");
+    workingEl.className = "working";
+    thread.appendChild(workingEl);
+  }
+  workingEl.innerHTML = `<span class="pulse" aria-hidden="true"></span><span>${esc(text)}</span>`;
+  scrollDown();
+}
+
+function setBusy(b) {
+  busy = b; input.disabled = b; sendBtn.disabled = b;
+  if (b) setWorking("Thinking…"); else { setWorking(null); input.focus(); }
+}
+
+/* ---------- activity slips ---------- */
+function argText(args) {
+  const parts = Object.entries(args || {}).map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`);
+  return parts.length ? parts.join("\n") : "(no inputs)";
+}
+function prettyResult(text) {
+  try { return JSON.stringify(JSON.parse(text), null, 2); } catch { return text; }
+}
+function addSlip(d) {
+  slipsEl.querySelector(".none")?.remove();
+  callCount++;
+  $("activity-count").textContent = `${callCount} tool call${callCount === 1 ? "" : "s"} this session.`;
+  const el = document.createElement("div");
+  el.className = "slip"; el.id = `slip-${d.id}`;
+  el.style.setProperty("--srv", srvVar(d.server));
+  el.innerHTML = `
+    <div class="slip-top">
+      <div><span class="server">${esc(d.server)}</span> · <span class="tool">${esc(shortName(d.tool))}</span></div>
+      <span class="state ${d.needs_approval ? "wait" : "run"}">${d.needs_approval ? "Waiting for you" : "Running"}</span>
+    </div>
+    <div class="args">${esc(argText(d.args)).replace(/\n/g, "<br>")}</div>`;
+  slipsEl.prepend(el);
+  if (!d.needs_approval) setWorking(`Using ${shortName(d.tool)} on the ${d.server} server…`);
+}
+function finishSlip(d) {
+  const el = $(`slip-${d.id}`); if (!el) return;
+  const state = el.querySelector(".state");
+  const denied = !d.approved;
+  state.className = `state ${d.is_error ? "bad" : "ok"}`;
+  state.textContent = denied ? (d.result.includes("declined") ? "Denied" : "Blocked")
+                    : d.is_error ? "Failed" : `Done in ${d.seconds}s`;
+  const det = document.createElement("details");
+  det.innerHTML = `<summary>Show result</summary><pre>${esc(prettyResult(d.result))}</pre>`;
+  el.appendChild(det);
+  setWorking("Thinking…");
+}
+
+/* ---------- approvals ---------- */
+function addApproval(d) {
+  $("empty")?.remove();
+  const name = shortName(d.tool);
+  const el = document.createElement("div");
+  el.className = "approval"; el.id = `appr-${d.id}`;
+  const rows = Object.entries(d.args || {}).map(([k, v]) =>
+    `<dt>${esc(k.replace(/_/g, " "))}</dt><dd>${esc(typeof v === "string" ? v : JSON.stringify(v))}</dd>`).join("");
+  el.innerHTML = `
+    <div class="q">The assistant wants to ${esc(ACTION_PHRASE[name] || `run ${name}`)}.</div>
+    <dl>${rows}</dl>
+    <div class="actions">
+      <button class="btn-primary" type="button" data-allow="1">${esc(ACTION_LABEL[name] || "Allow")}</button>
+      <button class="btn-secondary" type="button" data-allow="0">Deny</button>
+    </div>`;
+  el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => decide(d.id, b.dataset.allow === "1")));
+  thread.insertBefore(el, workingEl);
+  setWorking("Waiting for your decision…");
+  el.querySelector(".btn-primary").focus();
+}
+async function decide(id, allow) {
+  const el = $(`appr-${id}`);
+  el?.querySelectorAll("button").forEach((b) => (b.disabled = true));
+  await fetch("/api/decide", { method: "POST", headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify({ id, allow }) });
+}
+function settleApproval(d) {
+  const el = $(`appr-${d.id}`); if (!el) return;
+  el.classList.add("settled");
+  el.querySelector(".actions").outerHTML =
+    `<div class="outcome ${d.allow ? "yes" : "no"}">${d.allow ? "Approved" : "Denied"}</div>`;
+  const slip = $(`slip-${d.id}`);
+  if (slip && d.allow) { const s = slip.querySelector(".state"); s.className = "state run"; s.textContent = "Running"; }
+}
+
+/* ---------- live events from the server ---------- */
+const events = new EventSource("/api/events");
+const on = (name, fn) => events.addEventListener(name, (e) => fn(JSON.parse(e.data)));
+on("user", (d) => addMessage("user", d.text));
+on("status", (d) => setBusy(d.busy));
+on("thinking", (d) => addMessage("assistant", d.text));
+on("tool_call", addSlip);
+on("approval_needed", addApproval);
+on("decision", settleApproval);
+on("tool_result", finishSlip);
+on("answer", (d) => { setWorking(null); addMessage("assistant", d.text || "(No answer.)"); });
+on("error", (d) => addMessage("error", d.text));
+on("reset", () => location.reload());
+
+/* ---------- sending ---------- */
+async function send(text) {
+  text = text.trim();
+  if (!text || busy) return;
+  input.value = ""; autosize();
+  const r = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ text }) });
+  if (!r.ok) addMessage("error", (await r.json()).error || "The request failed.");
+}
+$("composer").addEventListener("submit", (e) => { e.preventDefault(); send(input.value); });
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input.value); }
+});
+if (window.matchMedia("(max-width: 520px)").matches) input.placeholder = "Type a request";
+function autosize() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 160) + "px"; }
+input.addEventListener("input", autosize);
+document.querySelectorAll(".example").forEach((b) => b.addEventListener("click", () => send(b.textContent)));
+$("reset").addEventListener("click", async () => {
+  const r = await fetch("/api/reset", { method: "POST" });
+  if (!r.ok) addMessage("error", (await r.json()).error);
+});
+
+/* ---------- header info ---------- */
+(async () => {
+  const info = await (await fetch("/api/info")).json();
+  $("brain").textContent = `Brain: ${info.brain}`;
+  $("servers").innerHTML = info.servers.map((s) =>
+    `<span class="server-chip" style="--srv:${srvVar(s)}">${esc(s)}</span>`).join("");
+  if (info.warnings.length) {
+    const w = $("warnings");
+    const blocked = info.warnings.some((x) => x.includes("QUARANTINED"));
+    w.innerHTML = `<details><summary><strong>${blocked ? "Safety check blocked suspicious tools."
+      : "Safety check found suspicious tools, but blocking is turned off."}</strong> Show details</summary><ul>${
+      info.warnings.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></details>`;
+    w.hidden = false;
+  }
+  slipsEl.innerHTML = `<div class="none">Each time the assistant uses a tool, it appears here with what it sent and what came back.</div>`;
+  if (info.busy) setBusy(true);
+})();
+</script>
+</body>
+</html>
