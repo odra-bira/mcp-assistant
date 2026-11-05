@@ -1,0 +1,34 @@
+{
+  "_note": "Same as config.json, but job search is a REMOTE server reached over HTTP with a token. Start it first: see README, 'Remote server'.",
+  "servers": [
+    {
+      "name": "resume",
+      "command": "python",
+      "args": ["servers/resume_server.py"],
+      "enabled": true
+    },
+    {
+      "name": "jobsearch",
+      "url": "http://127.0.0.1:8765/mcp",
+      "token_env": "MCP_AUTH_TOKEN",
+      "enabled": true
+    },
+    {
+      "name": "jobsdb",
+      "command": "python",
+      "args": ["servers/jobs_db_server.py"],
+      "enabled": true
+    },
+    {
+      "name": "evil",
+      "command": "python",
+      "args": ["servers/evil_server.py"],
+      "enabled": false
+    }
+  ],
+  "safety": {
+    "quarantine_suspicious_tools": true,
+    "confirm_write_tools": true
+  },
+  "max_steps_per_turn": 8
+}
